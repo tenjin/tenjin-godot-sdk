@@ -161,6 +161,20 @@ godot-cpp (branch `GODOT_CPP_BRANCH`, default `4.3`) into `ios/godot-cpp`. The
 4.3 bindings are used so a single build works on Godot 4.3 and every later
 4.x release.
 
+## Releasing
+
+Releases are cut by [release-please](https://github.com/googleapis/release-please)
+from [Conventional Commits](https://www.conventionalcommits.org/) on `main`
+(`feat:` → minor, `fix:` → patch, `feat!:` → major), so use those prefixes in
+PR titles. Merging the release PR it opens tags the release, updates
+`CHANGELOG.md` and the plugin version (`plugin.cfg`, `tenjin.gd`, the Android
+`BuildConfig` and the iOS `TENJIN_GODOT_PLUGIN_VERSION`), and attaches
+`tenjin-godot-sdk-<version>.zip` (the `addons/tenjin` folder) to the GitHub
+release.
+
+The native binaries in `addons/tenjin/bin` are committed, not built in CI, so
+rebuild them with the scripts above before releasing native changes.
+
 To bump the iOS SDK, run `./scripts/update-ios-sdk.sh <path/to/TenjinSDK.xcframework>`.
 To bump the Android SDK, change the version in `android/plugin/build.gradle.kts`
 and `TENJIN_ANDROID_DEPENDENCY` in `tenjin_export_plugin.gd`.

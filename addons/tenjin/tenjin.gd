@@ -16,7 +16,7 @@ signal attribution_info_failed(error: String)
 ## [code]is_first_session[/code].
 signal deep_link_received(params: Dictionary)
 
-const VERSION := "1.0.0"
+const VERSION := "1.0.0" # x-release-please-version
 const NATIVE_SINGLETON := "TenjinSDK"
 
 enum AppStore { UNSPECIFIED, GOOGLE_PLAY, AMAZON, OTHER }

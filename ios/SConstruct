@@ -8,7 +8,7 @@
 
 import os
 
-PLUGIN_VERSION = "1.0.0"
+PLUGIN_VERSION = "1.0.0"  # x-release-please-version
 TENJIN_XCFRAMEWORK = "../addons/tenjin/bin/ios/TenjinSDK.xcframework"
 
 env = SConscript("godot-cpp/SConstruct")

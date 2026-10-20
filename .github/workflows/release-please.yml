@@ -1,0 +1,49 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - name: Run release-please
+        id: release
+        uses: googleapis/release-please-action@v4
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  # Attaches the installable addon (addons/tenjin + LICENSE) to the GitHub
+  # release, in the layout the Godot Asset Library expects.
+  publish:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-please.outputs.tag_name }}
+
+      - name: Package addon
+        run: |
+          cp LICENSE addons/tenjin/LICENSE
+          zip -r "tenjin-godot-sdk-${TAG}.zip" addons/tenjin
+        env:
+          TAG: ${{ needs.release-please.outputs.tag_name }}
+
+      - name: Upload to release
+        run: gh release upload "$TAG" "tenjin-godot-sdk-${TAG}.zip" --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.release-please.outputs.tag_name }}
