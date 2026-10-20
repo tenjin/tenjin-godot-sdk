@@ -19,14 +19,14 @@ jobs:
   android:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "17"
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
       - run: ./scripts/build-android.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: bin-android
           path: addons/tenjin/bin/
@@ -35,12 +35,12 @@ jobs:
   ios:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: pipx install scons
       # Builds the iOS xcframeworks, downloads TenjinSDK.xcframework, and
       # builds the macOS stub.
       - run: ./scripts/build-ios.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: bin-ios-macos
           path: addons/tenjin/bin/
@@ -56,11 +56,11 @@ jobs:
             os: windows-latest
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: pipx install scons
       - run: ./scripts/build-stub.sh ${{ matrix.platform }}
         shell: bash
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: bin-${{ matrix.platform }}
           path: addons/tenjin/bin/
@@ -70,14 +70,14 @@ jobs:
     needs: [android, ios, stub]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           pattern: bin-*
           path: addons/tenjin/bin/
           merge-multiple: true
       - run: cp LICENSE addons/tenjin/LICENSE
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: tenjin-godot-sdk
           path: addons/
@@ -94,8 +94,8 @@ jobs:
         godot: ["4.3-stable", "4.7.2-stable"]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           name: tenjin-godot-sdk
           path: addons/
