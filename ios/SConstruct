@@ -1,0 +1,38 @@
+#!/usr/bin/env python
+# Builds the Tenjin GDExtension against godot-cpp. Normally driven by
+# ../scripts/build-ios.sh.
+#
+#   platform=ios    the real bridge, as a static library per slice; packaged
+#                   into addons/tenjin/bin/ios/libtenjin_godot.<target>.xcframework
+#   platform=macos  a no-op stub so the macOS editor can load the extension
+
+import os
+
+PLUGIN_VERSION = "1.0.0"
+TENJIN_XCFRAMEWORK = "../addons/tenjin/bin/ios/TenjinSDK.xcframework"
+
+env = SConscript("godot-cpp/SConstruct")
+env.Append(CPPPATH=["src/"])
+
+if env["platform"] == "ios":
+    slice_dir = "ios-arm64_x86_64-simulator" if env["ios_simulator"] else "ios-arm64"
+    env.Append(CPPDEFINES=[("TENJIN_GODOT_PLUGIN_VERSION", '\\"{}\\"'.format(PLUGIN_VERSION))])
+    env.Append(CCFLAGS=["-F" + os.path.join(TENJIN_XCFRAMEWORK, slice_dir)])
+    env.Append(CCFLAGS=["-fobjc-arc", "-fmodules"])
+
+    suffix = "simulator" if env["ios_simulator"] else "device"
+    library = env.StaticLibrary(
+        "build/libtenjin_godot.{}.{}.{}.a".format(env["target"], suffix, env["arch"]),
+        source=Glob("src/*.cpp") + Glob("src/*.mm"),
+    )
+elif env["platform"] == "macos":
+    env.Append(CPPDEFINES=["TENJIN_STUB"])
+    library = env.SharedLibrary(
+        "../addons/tenjin/bin/macos/libtenjin_godot.macos.framework/libtenjin_godot.macos",
+        source=["src/register_types.cpp"],
+    )
+else:
+    print("Unsupported platform: {} (use platform=ios or platform=macos).".format(env["platform"]))
+    Exit(1)
+
+Default(library)
