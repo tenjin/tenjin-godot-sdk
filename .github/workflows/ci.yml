@@ -1,0 +1,114 @@
+name: CI
+
+# Builds every native binary from source, smoke-tests the sample in headless
+# Godot, and packages the installable addon. release-please.yml calls this
+# workflow to build the release zip, so releases never ship locally built
+# binaries.
+
+on:
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  GODOT_CPP_BRANCH: "4.3"
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+      - run: ./scripts/build-android.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bin-android
+          path: addons/tenjin/bin/
+          if-no-files-found: error
+
+  ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pipx install scons
+      # Builds the iOS xcframeworks, downloads TenjinSDK.xcframework, and
+      # builds the macOS stub.
+      - run: ./scripts/build-ios.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bin-ios-macos
+          path: addons/tenjin/bin/
+          if-no-files-found: error
+
+  stub:
+    strategy:
+      matrix:
+        include:
+          - platform: linux
+            os: ubuntu-latest
+          - platform: windows
+            os: windows-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: pipx install scons
+      - run: ./scripts/build-stub.sh ${{ matrix.platform }}
+        shell: bash
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bin-${{ matrix.platform }}
+          path: addons/tenjin/bin/
+          if-no-files-found: error
+
+  addon:
+    needs: [android, ios, stub]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: bin-*
+          path: addons/tenjin/bin/
+          merge-multiple: true
+      - run: cp LICENSE addons/tenjin/LICENSE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tenjin-godot-sdk
+          path: addons/
+          if-no-files-found: error
+
+  # Imports and runs the sample with the built addon on the oldest supported
+  # Godot and the latest release. On Linux this loads the stub and exercises
+  # the no-op path of every script; any script or extension error fails it.
+  sample:
+    needs: addon
+    strategy:
+      fail-fast: false
+      matrix:
+        godot: ["4.3-stable", "4.7.2-stable"]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: tenjin-godot-sdk
+          path: addons/
+      - name: Download Godot ${{ matrix.godot }}
+        run: |
+          curl -fsSL -o godot.zip "https://github.com/godotengine/godot/releases/download/${{ matrix.godot }}/Godot_v${{ matrix.godot }}_linux.x86_64.zip"
+          unzip -q godot.zip
+          mv "Godot_v${{ matrix.godot }}_linux.x86_64" godot
+      - name: Import and run the sample
+        run: |
+          timeout 300 ./godot --headless --path sample --import 2>&1 | tee import.log
+          timeout 120 ./godot --headless --path sample --quit-after 120 2>&1 | tee run.log
+          if grep -E "SCRIPT ERROR|^ERROR|No GDExtension library found" import.log run.log; then
+            echo "::error::Godot reported errors"
+            exit 1
+          fi

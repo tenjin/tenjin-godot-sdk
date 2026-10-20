@@ -1,7 +1,7 @@
 ; GDExtension wrapping TenjinSDK.xcframework on iOS. Android goes through the
 ; v2 Android plugin AARs in bin/android (added by tenjin_export_plugin.gd), so
-; android_aar_plugin keeps this file out of Android exports. The macOS library
-; is a no-op stub so the editor loads the extension without errors.
+; android_aar_plugin keeps this file out of Android exports. The desktop libraries
+; are no-op stubs so editors and desktop exports load the extension without errors.
 
 [configuration]
 
@@ -12,5 +12,7 @@ android_aar_plugin = true
 [libraries]
 
 macos = "res://addons/tenjin/bin/macos/libtenjin_godot.macos.framework"
+linux.x86_64 = "res://addons/tenjin/bin/linux/libtenjin_godot.linux.x86_64.so"
+windows.x86_64 = "res://addons/tenjin/bin/windows/libtenjin_godot.windows.x86_64.dll"
 ios.debug = "res://addons/tenjin/bin/ios/libtenjin_godot.template_debug.xcframework"
 ios.release = "res://addons/tenjin/bin/ios/libtenjin_godot.template_release.xcframework"

@@ -1,0 +1,16 @@
+name: Feature request
+description: Suggest a missing method or improvement
+labels: [enhancement]
+body:
+  - type: textarea
+    id: request
+    attributes:
+      label: What would you like?
+      description: If it's a method the native Tenjin SDKs or other Tenjin plugins (Unity, React Native…) already have, say which.
+    validations:
+      required: true
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use case
+      description: What you're trying to do in your game.
