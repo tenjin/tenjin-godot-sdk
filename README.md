@@ -6,11 +6,14 @@ GDScript as the `Tenjin` autoload.
 
 - Godot **4.3+**
 - Tenjin Android SDK **1.24.0** (resolved from Maven Central at export time)
-- Tenjin iOS SDK **1.19.1** (vendored `TenjinSDK.xcframework`)
+- Tenjin iOS SDK **1.19.1** (`TenjinSDK.xcframework`, bundled in the release zip)
 
 ## Installation
 
-1. Copy `addons/tenjin` into your project's `addons/` folder.
+1. Download `tenjin-godot-sdk-<version>.zip` from
+   [Releases](https://github.com/tenjin/tenjin-godot-sdk/releases) and copy its
+   `addons/tenjin` into your project's `addons/` folder. (The repo itself has
+   no prebuilt binaries; see [Building](#building).)
 2. **Project → Project Settings → Plugins**: enable **Tenjin SDK**. This
    registers the `Tenjin` autoload.
 3. **Android**: in the Android export preset, enable
@@ -151,6 +154,9 @@ main thread.
 
 ## Building
 
+The native binaries under `addons/tenjin/bin` aren't committed. Build them
+before opening the sample from a checkout:
+
 ```bash
 ./scripts/build-android.sh   # → addons/tenjin/bin/android/*.aar
 ./scripts/build-ios.sh       # → addons/tenjin/bin/ios/*.xcframework + bin/macos stub
@@ -159,9 +165,13 @@ main thread.
 `build-ios.sh` needs Xcode and `scons` (`pipx install scons`). It clones
 godot-cpp (branch `GODOT_CPP_BRANCH`, default `4.3`) into `ios/godot-cpp`. The
 4.3 bindings are used so a single build works on Godot 4.3 and every later
-4.x release.
+4.x release. It also downloads `TenjinSDK.xcframework` from the
+[tenjin-ios-sdk release](https://github.com/tenjin/tenjin-ios-sdk/releases)
+pinned in `scripts/update-ios-sdk.sh`, checking its SHA-256.
 
-To bump the iOS SDK, run `./scripts/update-ios-sdk.sh <path/to/TenjinSDK.xcframework>`.
+To bump the iOS SDK, change the version and SHA-256 in
+`scripts/update-ios-sdk.sh` and run it (or pass it the path of a local
+`TenjinSDK.xcframework`).
 To bump the Android SDK, change the version in `android/plugin/build.gradle.kts`
 and `TENJIN_ANDROID_DEPENDENCY` in `tenjin_export_plugin.gd`.
 
