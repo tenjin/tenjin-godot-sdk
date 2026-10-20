@@ -10,3 +10,4 @@ ios/.sconsign.dblite
 **/*.os
 sample/.godot/
 sample/export/
+addons/tenjin/bin/
