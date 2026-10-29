@@ -222,13 +222,15 @@ jobs:
           mkdir -p "$(dirname "$dest")"
           mv templates "$dest"
       - name: Export the Xcode project
+        # macOS has no timeout(1).
+        timeout-minutes: 15
         run: |
           # Only in CI: the sample's preset builds an .ipa, which needs a team.
           printf '%s\n' 'application/export_project_only=true' 'application/app_store_team_id="ABCDE12345"' >> sample/export_presets.cfg
           mkdir -p build/ios
           godot=Godot.app/Contents/MacOS/Godot
-          timeout 300 "$godot" --headless --path sample --import
-          timeout 600 "$godot" --headless --path sample --export-debug iOS ../build/ios/TenjinSample.ipa 2>&1 | tee export.log
+          "$godot" --headless --path sample --import
+          "$godot" --headless --path sample --export-debug iOS ../build/ios/TenjinSample.ipa 2>&1 | tee export.log
           test -d build/ios/TenjinSample.xcodeproj
       - name: Link for the simulator
         run: |
