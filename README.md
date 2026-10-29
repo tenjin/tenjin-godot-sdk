@@ -5,8 +5,8 @@ analytics. It wraps the native Tenjin Android and iOS SDKs and exposes them to
 GDScript as the `Tenjin` autoload.
 
 - Godot **4.3+**
-- Tenjin Android SDK **1.24.0** (resolved from Maven Central at export time)
-- Tenjin iOS SDK **1.19.1** (`TenjinSDK.xcframework`, bundled in the release zip)
+- Tenjin Android SDK **2.0.1** (resolved from Maven Central at export time)
+- Tenjin iOS SDK **1.20.1** (`TenjinSDK.xcframework`, bundled in the release zip)
 
 ## Installation
 
@@ -79,7 +79,9 @@ Tenjin.set_google_dma_parameters(true, true)
 
 ### Attribution and deep links
 
-Async results come back as signals, on the main thread:
+Async results come back as signals, on the main thread. On Android,
+`attribution_info_failed` only fires when Tenjin isn't initialized: the
+Android SDK reports success only, so a failed request emits nothing.
 
 ```gdscript
 Tenjin.attribution_info_received.connect(func(info: Dictionary): print(info))
@@ -201,9 +203,11 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for internals and adding methods.
   x86_64. On other editor or export platforms (ARM Linux/Windows, Web), Godot
   logs "No GDExtension library found" when loading the project and when
   exporting. The SDK does nothing on those platforms anyway.
-- **Android runtime** logs one "Error loading extension" line at startup,
-  because `tenjin.gdextension` is left out of Android exports but is still
-  listed in the project's extension list. Nothing breaks.
+- **Android runtime** logs three `USER ERROR` lines at startup
+  (`Error loading GDExtension configuration file`, `Failed loading resource`
+  and `Error loading extension`), because `tenjin.gdextension` is left out of
+  Android exports but is still listed in the project's extension list.
+  Nothing breaks.
 - The Android SDK's deep link API fires once. Each `register_deep_link_handler()`
   call fetches once, and the payload includes `clicked_tenjin_link` and
   `is_first_session`.

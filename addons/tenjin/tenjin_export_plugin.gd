@@ -9,8 +9,16 @@ extends EditorExportPlugin
 ## Tenjin's SKAdNetwork IDs to Info.plist. The bridge itself is a GDExtension
 ## (tenjin.gdextension), which Godot links on its own.
 
-const TENJIN_ANDROID_DEPENDENCY := "com.tenjin:android-sdk:1.24.0"
-const IOS_BIN_DIR := "res://addons/tenjin/bin/ios/"
+const TENJIN_ANDROID_DEPENDENCY := "com.tenjin:android-sdk:2.0.1"
+# The Tenjin Android SDK doesn't bring these in, and without them it sends no
+# advertising ID or App Set ID. See
+# https://github.com/tenjin/tenjin-android-sdk#play-services-ads-identifier-google-play
+const GOOGLE_ANDROID_DEPENDENCIES: PackedStringArray = [
+	"com.google.android.gms:play-services-ads-identifier:18.2.0",
+	"com.google.android.gms:play-services-appset:16.1.0",
+]
+const BIN_DIR := "res://addons/tenjin/bin/"
+const IOS_BIN_DIR := BIN_DIR + "ios/"
 
 const SETTING_TRACKING_DESCRIPTION := "tenjin/ios/tracking_usage_description"
 const SETTING_ADD_SKADNETWORK_IDS := "tenjin/ios/add_skadnetwork_ids"
@@ -54,7 +62,17 @@ func _get_android_libraries(platform: EditorExportPlatform, debug: bool) -> Pack
 
 
 func _get_android_dependencies(platform: EditorExportPlatform, debug: bool) -> PackedStringArray:
-	return PackedStringArray([TENJIN_ANDROID_DEPENDENCY])
+	var dependencies := PackedStringArray([TENJIN_ANDROID_DEPENDENCY])
+	dependencies.append_array(GOOGLE_ANDROID_DEPENDENCIES)
+	return dependencies
+
+
+# The native binaries reach the build through the hooks above, never through
+# the PCK. Without this, Godot imports the iOS framework's .abi.json files as
+# resources and packs them (~930 KB) into every export, Android included.
+func _export_file(path: String, type: String, features: PackedStringArray) -> void:
+	if path.begins_with(BIN_DIR):
+		skip()
 
 
 func _export_begin(features: PackedStringArray, is_debug: bool, path: String, flags: int) -> void:

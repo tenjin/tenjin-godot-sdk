@@ -10,6 +10,8 @@ extends Node
 ## Attribution data requested with [method get_attribution_info].
 signal attribution_info_received(info: Dictionary)
 ## [method get_attribution_info] failed, or Tenjin was not initialized.
+## On Android it's only emitted when Tenjin was not initialized: the Android
+## SDK reports success only, so a failed request emits nothing.
 signal attribution_info_failed(error: String)
 ## Deep link parameters, after [method register_deep_link_handler]. On Android
 ## the payload also has [code]clicked_tenjin_link[/code] and
@@ -245,7 +247,9 @@ func reset_user_profile() -> void:
 # ---- Async -------------------------------------------------------------------
 
 ## Requests attribution data. The result arrives through
-## [signal attribution_info_received] or [signal attribution_info_failed]:
+## [signal attribution_info_received] or [signal attribution_info_failed].
+## On Android a failed request emits neither (see
+## [signal attribution_info_failed]):
 ## [codeblock]
 ## Tenjin.attribution_info_received.connect(func(info): print(info))
 ## Tenjin.get_attribution_info()

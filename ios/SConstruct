@@ -24,10 +24,12 @@ if env["platform"] == "ios":
     env.Append(CCFLAGS=["-fobjc-arc", "-fmodules"])
 
     suffix = "simulator" if env["ios_simulator"] else "device"
-    library = env.StaticLibrary(
-        "build/libtenjin_godot.{}.{}.{}.a".format(env["target"], suffix, env["arch"]),
-        source=Glob("src/*.cpp") + Glob("src/*.mm"),
-    )
+    name = "build/libtenjin_godot.{}.{}.{}".format(env["target"], suffix, env["arch"])
+    objects = env.StaticLibrary(name + ".objects.a", source=Glob("src/*.cpp") + Glob("src/*.mm"))
+    # A static library holds only its own objects, and nothing else links
+    # godot-cpp into the game, so it's merged in here; without it the
+    # exported Xcode project fails to link.
+    library = env.Command(name + ".a", [objects] + env["LIBS"], "libtool -static -o $TARGET $SOURCES")
 elif env["platform"] in ("macos", "linux", "windows"):
     env.Append(CPPDEFINES=["TENJIN_STUB"])
     if env["platform"] == "macos":
