@@ -177,7 +177,8 @@ jobs:
       - name: Check the APK
         run: |
           apk=build/android/TenjinSample.apk
-          for class in Lcom/tenjin/godot/ Lcom/tenjin/android/ Lcom/google/android/gms/ads/identifier/; do
+          for class in Lcom/tenjin/godot/ Lcom/tenjin/android/ Lcom/google/android/gms/ads/identifier/ \
+            Lcom/google/android/gms/appset/; do
             if ! unzip -p "$apk" 'classes*.dex' | grep -aq "$class"; then
               echo "::error::$class is not in the APK"
               exit 1
