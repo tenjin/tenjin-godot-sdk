@@ -68,6 +68,7 @@ public:
 	// Async (results are emitted as signals on the main thread)
 	void requestAttributionInfo();
 	void registerDeepLinkHandler();
+	void requestTrackingAuthorization();
 };
 
 } // namespace godot
