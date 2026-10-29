@@ -93,10 +93,12 @@ void TenjinIOS::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("requestAttributionInfo"), &TenjinIOS::requestAttributionInfo);
 	ClassDB::bind_method(D_METHOD("registerDeepLinkHandler"), &TenjinIOS::registerDeepLinkHandler);
+	ClassDB::bind_method(D_METHOD("requestTrackingAuthorization"), &TenjinIOS::requestTrackingAuthorization);
 
 	ADD_SIGNAL(MethodInfo("attribution_info_received", PropertyInfo(Variant::STRING, "json")));
 	ADD_SIGNAL(MethodInfo("attribution_info_failed", PropertyInfo(Variant::STRING, "error")));
 	ADD_SIGNAL(MethodInfo("deep_link_received", PropertyInfo(Variant::STRING, "json")));
+	ADD_SIGNAL(MethodInfo("tracking_authorization_received", PropertyInfo(Variant::INT, "status")));
 }
 
 // ---- Lifecycle -------------------------------------------------------------
@@ -275,5 +277,13 @@ void TenjinIOS::registerDeepLinkHandler() {
 			return;
 		}
 		call_deferred("emit_signal", "deep_link_received", from_ns(json_from_dictionary(params)));
+	}];
+}
+
+// Shows the App Tracking Transparency prompt (once per install; later calls
+// return the stored status). The status is ATTrackingManagerAuthorizationStatus.
+void TenjinIOS::requestTrackingAuthorization() {
+	[TenjinSDK requestTrackingAuthorizationWithCompletionHandler:^(NSUInteger status) {
+		call_deferred("emit_signal", "tracking_authorization_received", (int64_t)status);
 	}];
 }

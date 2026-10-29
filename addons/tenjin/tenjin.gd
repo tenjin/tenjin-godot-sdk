@@ -17,11 +17,17 @@ signal attribution_info_failed(error: String)
 ## the payload also has [code]clicked_tenjin_link[/code] and
 ## [code]is_first_session[/code].
 signal deep_link_received(params: Dictionary)
+## Result of [method request_tracking_authorization], a [enum TrackingStatus].
+signal tracking_authorization_received(status: int)
 
 const VERSION := "1.0.0" # x-release-please-version
 const NATIVE_SINGLETON := "TenjinSDK"
 
 enum AppStore { UNSPECIFIED, GOOGLE_PLAY, AMAZON, OTHER }
+
+## App Tracking Transparency status, same values as iOS's
+## [code]ATTrackingManager.AuthorizationStatus[/code].
+enum TrackingStatus { NOT_DETERMINED, RESTRICTED, DENIED, AUTHORIZED }
 
 const _APP_STORE_NAMES := {
 	AppStore.UNSPECIFIED: "unspecified",
@@ -44,6 +50,8 @@ func _init() -> void:
 	_native.connect("attribution_info_received", _on_native_attribution_info_received, CONNECT_DEFERRED)
 	_native.connect("attribution_info_failed", _on_native_attribution_info_failed, CONNECT_DEFERRED)
 	_native.connect("deep_link_received", _on_native_deep_link_received, CONNECT_DEFERRED)
+	if _is_ios:
+		_native.connect("tracking_authorization_received", _on_native_tracking_authorization_received, CONNECT_DEFERRED)
 
 
 ## Returns true when running on a platform with the native SDK.
@@ -268,6 +276,23 @@ func register_deep_link_handler() -> void:
 	_call("registerDeepLinkHandler")
 
 
+## Shows the iOS App Tracking Transparency prompt; the answer arrives through
+## [signal tracking_authorization_received]. iOS shows the prompt once per
+## install, and later calls report the stored answer. Call
+## [method connect_sdk] once the answer arrives, so the first event carries
+## the IDFA. Elsewhere there's no prompt, and the signal reports
+## [constant TrackingStatus.AUTHORIZED] right away:
+## [codeblock]
+## Tenjin.tracking_authorization_received.connect(func(_status): Tenjin.connect_sdk())
+## Tenjin.request_tracking_authorization()
+## [/codeblock]
+func request_tracking_authorization() -> void:
+	if _is_ios and _native != null:
+		_native.call("requestTrackingAuthorization")
+	else:
+		tracking_authorization_received.emit.call_deferred(TrackingStatus.AUTHORIZED)
+
+
 # ---- Internals ---------------------------------------------------------------
 
 func _call(method: String, args: Array = [], default: Variant = null) -> Variant:
@@ -296,3 +321,7 @@ func _on_native_attribution_info_failed(error: String) -> void:
 
 func _on_native_deep_link_received(json: String) -> void:
 	deep_link_received.emit(_parse_json_dictionary(json))
+
+
+func _on_native_tracking_authorization_received(status: int) -> void:
+	tracking_authorization_received.emit(status)
