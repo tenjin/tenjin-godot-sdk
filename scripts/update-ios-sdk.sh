@@ -6,8 +6,8 @@
 # To bump the iOS SDK, change both values below.
 set -euo pipefail
 
-TENJIN_IOS_SDK_VERSION="1.19.1"
-TENJIN_IOS_SDK_SHA256="e2dbe5f8522e90840b6990dfb41cd6172cb99473a1f2f7dfbd733fcf2e89d694"
+TENJIN_IOS_SDK_VERSION="1.20.1"
+TENJIN_IOS_SDK_SHA256="4568c042705df3efb5eaf869a4e64f39fa1664e6b03552f25dde7c88ca2923a2"
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DEST="$ROOT/addons/tenjin/bin/ios/TenjinSDK.xcframework"
