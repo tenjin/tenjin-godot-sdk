@@ -76,7 +76,9 @@ Tenjin.set_google_dma_parameters(true, true)
 
 ### Attribution and deep links
 
-Async results come back as signals, on the main thread:
+Async results come back as signals, on the main thread. On Android,
+`attribution_info_failed` only fires when Tenjin isn't initialized: the
+Android SDK reports success only, so a failed request emits nothing.
 
 ```gdscript
 Tenjin.attribution_info_received.connect(func(info: Dictionary): print(info))
@@ -181,9 +183,11 @@ and `TENJIN_ANDROID_DEPENDENCY` in `tenjin_export_plugin.gd`.
   the project opens, because only a macOS stub is shipped. Nothing breaks
   (it's only the iOS bridge, and those platforms can't export to iOS
   anyway). Adding stubs for those platforms would remove the error.
-- **Android runtime** logs one "Error loading extension" line at startup,
-  because `tenjin.gdextension` is left out of Android exports but is still
-  listed in the project's extension list. Nothing breaks.
+- **Android runtime** logs three `USER ERROR` lines at startup
+  (`Error loading GDExtension configuration file`, `Failed loading resource`
+  and `Error loading extension`), because `tenjin.gdextension` is left out of
+  Android exports but is still listed in the project's extension list.
+  Nothing breaks.
 - The Android SDK's deep link API fires once. Each `register_deep_link_handler()`
   call fetches once, and the payload includes `clicked_tenjin_link` and
   `is_first_session`.
