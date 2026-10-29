@@ -5,8 +5,8 @@ analytics. It wraps the native Tenjin Android and iOS SDKs and exposes them to
 GDScript as the `Tenjin` autoload.
 
 - Godot **4.3+**
-- Tenjin Android SDK **1.24.0** (resolved from Maven Central at export time)
-- Tenjin iOS SDK **1.19.1** (`TenjinSDK.xcframework`, bundled in the release zip)
+- Tenjin Android SDK **2.0.1** (resolved from Maven Central at export time)
+- Tenjin iOS SDK **1.20.1** (`TenjinSDK.xcframework`, bundled in the release zip)
 
 ## Installation
 
