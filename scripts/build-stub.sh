@@ -25,4 +25,7 @@ esac
 # One debug build serves the editor and both export templates.
 cd "$IOS"
 scons -j"$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 4)" platform="$PLATFORM" arch="$ARCH" target=template_debug
+# MSVC leaves the import library and exports file next to the DLL; nothing
+# loads them, so they stay out of the addon.
+rm -f "$ROOT/addons/tenjin/bin/$PLATFORM/"*.lib "$ROOT/addons/tenjin/bin/$PLATFORM/"*.exp
 echo "Built $PLATFORM stub into $ROOT/addons/tenjin/bin/$PLATFORM"
