@@ -18,10 +18,14 @@ func _ready() -> void:
 	Tenjin.attribution_info_received.connect(func(info: Dictionary) -> void: _print("attribution: %s" % info))
 	Tenjin.attribution_info_failed.connect(func(error: String) -> void: _print("attribution failed: %s" % error))
 	Tenjin.deep_link_received.connect(func(params: Dictionary) -> void: _print("deep link: %s" % params))
+	# Connect once the ATT answer is in, so the first event carries the IDFA.
+	Tenjin.tracking_authorization_received.connect(func(status: int) -> void:
+		_print("tracking authorization: %s" % Tenjin.TrackingStatus.find_key(status))
+		Tenjin.connect_sdk())
 
 	Tenjin.initialize(SDK_KEY)
 	Tenjin.register_deep_link_handler()
-	Tenjin.connect_sdk()
+	Tenjin.request_tracking_authorization()
 	_print("initialized (native SDK available: %s)" % Tenjin.is_available())
 
 
