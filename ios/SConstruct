@@ -4,11 +4,14 @@
 #
 #   platform=ios    the real bridge, as a static library per slice; packaged
 #                   into addons/tenjin/bin/ios/libtenjin_godot.<target>.xcframework
-#   platform=macos  a no-op stub so the macOS editor can load the extension
+#   platform=macos|linux|windows
+#                   a no-op stub (see ../scripts/build-stub.sh), so editors
+#                   and desktop exports on those platforms can load the
+#                   extension
 
 import os
 
-PLUGIN_VERSION = "1.0.0"
+PLUGIN_VERSION = "1.0.0"  # x-release-please-version
 TENJIN_XCFRAMEWORK = "../addons/tenjin/bin/ios/TenjinSDK.xcframework"
 
 env = SConscript("godot-cpp/SConstruct")
@@ -27,14 +30,17 @@ if env["platform"] == "ios":
     # godot-cpp into the game, so it's merged in here; without it the
     # exported Xcode project fails to link.
     library = env.Command(name + ".a", [objects] + env["LIBS"], "libtool -static -o $TARGET $SOURCES")
-elif env["platform"] == "macos":
+elif env["platform"] in ("macos", "linux", "windows"):
     env.Append(CPPDEFINES=["TENJIN_STUB"])
-    library = env.SharedLibrary(
-        "../addons/tenjin/bin/macos/libtenjin_godot.macos.framework/libtenjin_godot.macos",
-        source=["src/register_types.cpp"],
-    )
+    if env["platform"] == "macos":
+        path = "../addons/tenjin/bin/macos/libtenjin_godot.macos.framework/libtenjin_godot.macos"
+    else:
+        path = "../addons/tenjin/bin/{0}/libtenjin_godot.{0}.{1}{2}".format(
+            env["platform"], env["arch"], env["SHLIBSUFFIX"]
+        )
+    library = env.SharedLibrary(path, source=["src/register_types.cpp"])
 else:
-    print("Unsupported platform: {} (use platform=ios or platform=macos).".format(env["platform"]))
+    print("Unsupported platform: {} (use ios, macos, linux or windows).".format(env["platform"]))
     Exit(1)
 
 Default(library)

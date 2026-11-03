@@ -20,7 +20,7 @@ signal deep_link_received(params: Dictionary)
 ## Result of [method request_tracking_authorization], a [enum TrackingStatus].
 signal tracking_authorization_received(status: int)
 
-const VERSION := "1.0.0"
+const VERSION := "1.0.0" # x-release-please-version
 const NATIVE_SINGLETON := "TenjinSDK"
 
 enum AppStore { UNSPECIFIED, GOOGLE_PLAY, AMAZON, OTHER }

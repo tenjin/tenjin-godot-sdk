@@ -7,7 +7,7 @@ plugins {
 
 // Keep in sync with addons/tenjin/plugin.cfg and the export plugin's
 // TENJIN_ANDROID_DEPENDENCY.
-val pluginVersion = "1.0.0"
+val pluginVersion = "1.0.0" // x-release-please-version
 val tenjinAndroidSdkVersion = "2.0.1"
 val godotVersion = "4.3.0.stable"
 

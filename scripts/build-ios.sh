@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Builds the iOS GDExtension (debug + release, device + simulator) and
 # packages each target as an xcframework under addons/tenjin/bin/ios, plus
-# the no-op macOS stub the editor loads (addons/tenjin/bin/macos).
+# the no-op macOS stub (scripts/build-stub.sh).
 #
 # Requires: Xcode, scons (pipx install scons), and godot-cpp checked out at
 # ios/godot-cpp on the branch matching the minimum supported Godot version.
@@ -39,8 +39,6 @@ for target in template_debug template_release; do
     -output "$OUT/libtenjin_godot.$target.xcframework"
 done
 
-# The stub only needs to load; one universal debug build serves the editor
-# and desktop exports.
-scons -j"$JOBS" platform=macos arch=universal target=template_debug
+echo "Built iOS GDExtension libraries into $OUT"
 
-echo "Built GDExtension libraries into $ROOT/addons/tenjin/bin"
+"$ROOT/scripts/build-stub.sh" macos
