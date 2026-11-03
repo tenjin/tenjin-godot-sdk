@@ -1,0 +1,14 @@
+.DS_Store
+android/.gradle/
+android/build/
+android/plugin/build/
+android/local.properties
+ios/godot-cpp/
+ios/build/
+ios/.sconsign.dblite
+**/*.o
+**/*.os
+sample/.godot/
+sample/export/
+addons/tenjin/bin/
+/build/
