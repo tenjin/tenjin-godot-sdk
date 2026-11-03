@@ -78,6 +78,9 @@ Tenjin.subscription(product_id, "USD", 4.99,
 var error := Tenjin.subscription_with_storekit(product_id, "USD", 4.99)  # iOS 16+, "" on success
 ```
 
+See [SUBSCRIPTIONS_TRACKING.md](SUBSCRIPTIONS_TRACKING.md) for where each
+field comes from, with a Google Play Billing example.
+
 ### App store (Android)
 
 Leave it unset for Google Play. For other Android stores, set it before
@@ -254,16 +257,18 @@ addons/tenjin/
 ├── plugin.cfg / tenjin_editor_plugin.gd   # registers the autoload + export plugin
 ├── tenjin_export_plugin.gd                # Android AAR + Maven dep, iOS framework + plist
 ├── tenjin.gd                              # public API (the `Tenjin` autoload)
-├── tenjin.gdextension                     # iOS bridge (+ macOS editor stub)
-└── bin/
+├── tenjin.gdextension                     # iOS bridge (+ desktop stubs)
+└── bin/                                   # built, not committed
     ├── android/tenjin-godot-{debug,release}.aar
     ├── ios/TenjinSDK.xcframework
     ├── ios/libtenjin_godot.template_{debug,release}.xcframework
-    └── macos/libtenjin_godot.macos.framework
+    ├── macos/libtenjin_godot.macos.framework
+    ├── linux/libtenjin_godot.linux.x86_64.so
+    └── windows/libtenjin_godot.windows.x86_64.dll
 android/   # Gradle project → Godot Android plugin (v2), Kotlin
 ios/       # godot-cpp GDExtension, Objective-C++
 sample/    # Godot project that calls every method (addons/tenjin is a symlink)
-scripts/   # build-android.sh, build-ios.sh, update-ios-sdk.sh
+scripts/   # build-android.sh, build-ios.sh, build-stub.sh, update-ios-sdk.sh
 ```
 
 Both platforms register a native singleton called `TenjinSDK`, and the method
@@ -290,6 +295,7 @@ before opening the sample from a checkout:
 ```bash
 ./scripts/build-android.sh   # → addons/tenjin/bin/android/*.aar
 ./scripts/build-ios.sh       # → addons/tenjin/bin/ios/*.xcframework + bin/macos stub
+./scripts/build-stub.sh linux   # or windows: no-op stub for that desktop editor
 ```
 
 `build-ios.sh` needs Xcode and `scons` (`pipx install scons`). It clones
@@ -314,14 +320,17 @@ PR titles. Merging the release PR it opens tags the release, updates
 `CHANGELOG.md` and the plugin version (`plugin.cfg`, `tenjin.gd`, the Android
 `BuildConfig` and the iOS `TENJIN_GODOT_PLUGIN_VERSION`), and attaches
 `tenjin-godot-sdk-<version>.zip` (the `addons/tenjin` folder) to the GitHub
-release.
+release. CI (`.github/workflows/ci.yml`) builds every binary in that zip from
+source.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for internals and adding methods.
 
 ## Known limitations
 
-- **Windows/Linux editors** show a "No GDExtension library found" error when
-  the project opens, because only a macOS stub is shipped. Nothing breaks
-  (it's only the iOS bridge, and those platforms can't export to iOS
-  anyway). Adding stubs for those platforms would remove the error.
+- Desktop stubs are shipped for macOS (universal), Linux x86_64 and Windows
+  x86_64. On other editor or export platforms (ARM Linux/Windows, Web), Godot
+  logs "No GDExtension library found" when loading the project and when
+  exporting. The SDK does nothing on those platforms anyway.
 - **Android runtime** logs three `USER ERROR` lines at startup
   (`Error loading GDExtension configuration file`, `Failed loading resource`
   and `Error loading extension`), because `tenjin.gdextension` is left out of

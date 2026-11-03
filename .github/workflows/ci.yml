@@ -1,0 +1,240 @@
+name: CI
+
+# Builds every native binary from source, smoke-tests the sample in headless
+# Godot, and packages the installable addon. release-please.yml calls this
+# workflow to build the release zip, so releases never ship locally built
+# binaries.
+
+on:
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  GODOT_CPP_BRANCH: "4.3"
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v6
+      - run: ./scripts/build-android.sh
+      - uses: actions/upload-artifact@v7
+        with:
+          name: bin-android
+          path: addons/tenjin/bin/
+          if-no-files-found: error
+
+  ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: pipx install scons
+      # Builds the iOS xcframeworks, downloads TenjinSDK.xcframework, and
+      # builds the macOS stub.
+      - run: ./scripts/build-ios.sh
+      - uses: actions/upload-artifact@v7
+        with:
+          name: bin-ios-macos
+          path: addons/tenjin/bin/
+          if-no-files-found: error
+
+  stub:
+    strategy:
+      matrix:
+        include:
+          - platform: linux
+            os: ubuntu-latest
+          - platform: windows
+            os: windows-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - run: pipx install scons
+      - run: ./scripts/build-stub.sh ${{ matrix.platform }}
+        shell: bash
+      - uses: actions/upload-artifact@v7
+        with:
+          name: bin-${{ matrix.platform }}
+          path: addons/tenjin/bin/
+          if-no-files-found: error
+
+  addon:
+    needs: [android, ios, stub]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: bin-*
+          path: addons/tenjin/bin/
+          merge-multiple: true
+      - run: cp LICENSE addons/tenjin/LICENSE
+      - uses: actions/upload-artifact@v7
+        with:
+          name: tenjin-godot-sdk
+          path: addons/
+          if-no-files-found: error
+
+  # Imports and runs the sample with the built addon on the oldest supported
+  # Godot and the latest release. On Linux this loads the stub and exercises
+  # the no-op path of every script; any script or extension error fails it.
+  sample:
+    needs: addon
+    strategy:
+      fail-fast: false
+      matrix:
+        godot: ["4.3-stable", "4.7.2-stable"]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: tenjin-godot-sdk
+          path: addons/
+      - name: Download Godot ${{ matrix.godot }}
+        run: |
+          curl -fsSL -o godot.zip "https://github.com/godotengine/godot/releases/download/${{ matrix.godot }}/Godot_v${{ matrix.godot }}_linux.x86_64.zip"
+          unzip -q godot.zip
+          mv "Godot_v${{ matrix.godot }}_linux.x86_64" godot
+      - name: Import and run the sample
+        run: |
+          timeout 300 ./godot --headless --path sample --import 2>&1 | tee import.log
+          timeout 120 ./godot --headless --path sample --quit-after 120 2>&1 | tee run.log
+          if grep -E "SCRIPT ERROR|^ERROR|No GDExtension library found" import.log run.log; then
+            echo "::error::Godot reported errors"
+            exit 1
+          fi
+
+  # The sample job above only loads the desktop stub. These export the sample
+  # for Android and iOS and check the result, since a missing dependency or
+  # an unlinked symbol only shows up once a game is exported.
+  export-android:
+    needs: addon
+    strategy:
+      fail-fast: false
+      matrix:
+        godot: ["4.3-stable", "4.7.2-stable"]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: tenjin-godot-sdk
+          path: addons/
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: actions/cache@v6
+        with:
+          path: templates.tpz
+          key: godot-templates-${{ matrix.godot }}
+      - name: Download Godot ${{ matrix.godot }} and its export templates
+        run: |
+          base="https://github.com/godotengine/godot/releases/download/${{ matrix.godot }}"
+          curl -fsSL -o godot.zip "$base/Godot_v${{ matrix.godot }}_linux.x86_64.zip"
+          unzip -q godot.zip
+          mv "Godot_v${{ matrix.godot }}_linux.x86_64" godot
+          [ -f templates.tpz ] || curl -fsSL -o templates.tpz "$base/Godot_v${{ matrix.godot }}_export_templates.tpz"
+          unzip -q templates.tpz
+          dest="$HOME/.local/share/godot/export_templates/$(cat templates/version.txt)"
+          mkdir -p "$(dirname "$dest")"
+          mv templates "$dest"
+      - name: Editor settings for Android
+        run: |
+          keytool -genkeypair -keystore "$RUNNER_TEMP/debug.keystore" -storepass android \
+            -alias androiddebugkey -keypass android -keyalg RSA -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US"
+          mkdir -p ~/.config/godot
+          major_minor=$(echo "${{ matrix.godot }}" | cut -d. -f1-2 | cut -d- -f1)
+          for file in editor_settings-4.tres "editor_settings-$major_minor.tres"; do
+            cat > ~/.config/godot/"$file" <<SETTINGS
+          [gd_resource type="EditorSettings" format=3]
+
+          [resource]
+          export/android/android_sdk_path = "$ANDROID_HOME"
+          export/android/java_sdk_path = "$JAVA_HOME"
+          export/android/debug_keystore = "$RUNNER_TEMP/debug.keystore"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
+          SETTINGS
+          done
+      - name: Export the sample
+        run: |
+          mkdir -p build/android
+          timeout 300 ./godot --headless --path sample --import
+          timeout 1200 ./godot --headless --path sample --install-android-build-template \
+            --export-debug Android ../build/android/TenjinSample.apk 2>&1 | tee export.log
+          test -f build/android/TenjinSample.apk
+      - name: Check the APK
+        run: |
+          apk=build/android/TenjinSample.apk
+          for class in Lcom/tenjin/godot/ Lcom/tenjin/android/ Lcom/google/android/gms/ads/identifier/ \
+            Lcom/google/android/gms/appset/; do
+            if ! unzip -p "$apk" 'classes*.dex' | grep -aq "$class"; then
+              echo "::error::$class is not in the APK"
+              exit 1
+            fi
+          done
+          if unzip -l "$apk" | grep -E '\.abi\.json|addons/tenjin/bin/'; then
+            echo "::error::the addon's native binaries were packed into the APK"
+            exit 1
+          fi
+
+  # Exports the Xcode project only and links it for the simulator, unsigned.
+  # The 4.7.2 template only has an x86_64 simulator slice; 4.3's has arm64.
+  export-ios:
+    needs: addon
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - godot: "4.3-stable"
+            arch: arm64
+          - godot: "4.7.2-stable"
+            arch: x86_64
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: tenjin-godot-sdk
+          path: addons/
+      - uses: actions/cache@v6
+        with:
+          path: templates.tpz
+          key: godot-templates-${{ matrix.godot }}
+      - name: Download Godot ${{ matrix.godot }} and its export templates
+        run: |
+          base="https://github.com/godotengine/godot/releases/download/${{ matrix.godot }}"
+          curl -fsSL -o godot.zip "$base/Godot_v${{ matrix.godot }}_macos.universal.zip"
+          unzip -q godot.zip
+          [ -f templates.tpz ] || curl -fsSL -o templates.tpz "$base/Godot_v${{ matrix.godot }}_export_templates.tpz"
+          unzip -q templates.tpz
+          dest="$HOME/Library/Application Support/Godot/export_templates/$(cat templates/version.txt)"
+          mkdir -p "$(dirname "$dest")"
+          mv templates "$dest"
+      - name: Export the Xcode project
+        # macOS has no timeout(1).
+        timeout-minutes: 15
+        run: |
+          # Only in CI: the sample's preset builds an .ipa, which needs a team.
+          printf '%s\n' 'application/export_project_only=true' 'application/app_store_team_id="ABCDE12345"' >> sample/export_presets.cfg
+          mkdir -p build/ios
+          godot=Godot.app/Contents/MacOS/Godot
+          "$godot" --headless --path sample --import
+          "$godot" --headless --path sample --export-debug iOS ../build/ios/TenjinSample.ipa 2>&1 | tee export.log
+          test -d build/ios/TenjinSample.xcodeproj
+      - name: Link for the simulator
+        run: |
+          xcodebuild -project build/ios/TenjinSample.xcodeproj -scheme TenjinSample \
+            -sdk iphonesimulator -configuration Debug ARCHS=${{ matrix.arch }} \
+            CODE_SIGNING_ALLOWED=NO build

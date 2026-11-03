@@ -1,0 +1,55 @@
+name: Bug report
+description: Something in the Tenjin Godot SDK doesn't work as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Don't paste your SDK key, API keys, or end-user data. For questions
+        about your account or dashboard data, email support@tenjin.com.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: The smallest GDScript snippet or steps that show the problem.
+      render: gdscript
+  - type: input
+    id: sdk-version
+    attributes:
+      label: Tenjin Godot SDK version
+      placeholder: "1.0.0 (Tenjin.VERSION)"
+    validations:
+      required: true
+  - type: input
+    id: godot-version
+    attributes:
+      label: Godot version
+      placeholder: "4.3.stable"
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      multiple: true
+      options: [Android, iOS, Editor / desktop]
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and OS version
+      placeholder: "Pixel 8, Android 15 / iPhone 15, iOS 18.2"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Godot output plus `adb logcat` (Android) or the Xcode console (iOS), filtered to Tenjin/Godot.
+      render: text

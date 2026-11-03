@@ -29,33 +29,37 @@ jobs:
 
       - name: Run release-please
         id: release
-        uses: googleapis/release-please-action@v4
+        uses: googleapis/release-please-action@v5
         with:
           token: ${{ steps.token.outputs.token }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-  # Attaches the installable addon (addons/tenjin + LICENSE) to the GitHub
-  # release, in the layout the Godot Asset Library expects.
-  publish:
+  build:
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    uses: ./.github/workflows/ci.yml
+
+  # Attaches the installable addon (addons/tenjin, built by ci.yml, plus
+  # LICENSE) to the GitHub release. The Godot Asset Library listing downloads
+  # this zip (Custom provider), so its layout is what the Asset Library
+  # expects.
+  publish:
+    needs: [release-please, build]
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/download-artifact@v8
         with:
-          ref: ${{ needs.release-please.outputs.tag_name }}
+          name: tenjin-godot-sdk
+          path: addons/
 
       - name: Package addon
-        run: |
-          cp LICENSE addons/tenjin/LICENSE
-          zip -r "tenjin-godot-sdk-${TAG}.zip" addons/tenjin
+        run: zip -r "tenjin-godot-sdk-${TAG}.zip" addons/tenjin
         env:
           TAG: ${{ needs.release-please.outputs.tag_name }}
 
       - name: Upload to release
-        run: gh release upload "$TAG" "tenjin-godot-sdk-${TAG}.zip" --clobber
+        run: gh release upload "$TAG" "tenjin-godot-sdk-${TAG}.zip" --clobber --repo "$GITHUB_REPOSITORY"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ needs.release-please.outputs.tag_name }}

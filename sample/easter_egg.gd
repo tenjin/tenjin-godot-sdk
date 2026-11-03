@@ -1,7 +1,7 @@
 extends CanvasLayer
-## Easter egg: a 3D head wearing a generated smiley flies around over the
-## sample UI. Tap anywhere to dismiss. Drop an image at
-## res://easter_egg/face.png to put that on the head instead.
+## Easter egg: a 3D head wearing res://easter_egg/face.png flies around over
+## the sample UI. Tap anywhere to dismiss. Without the photo it wears a
+## generated smiley instead.
 
 const FACE_PATH := "res://easter_egg/face.png"
 const HEAD_RADIUS := 0.5
