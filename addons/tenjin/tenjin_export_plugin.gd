@@ -9,7 +9,7 @@ extends EditorExportPlugin
 ## Tenjin's SKAdNetwork IDs to Info.plist. The bridge itself is a GDExtension
 ## (tenjin.gdextension), which Godot links on its own.
 
-const TENJIN_ANDROID_DEPENDENCY := "com.tenjin:android-sdk:2.0.1"
+const TENJIN_ANDROID_DEPENDENCY := "com.tenjin:android-sdk:2.1.0"
 # The Tenjin Android SDK doesn't bring these in, and without them it sends no
 # advertising ID or App Set ID. See
 # https://github.com/tenjin/tenjin-android-sdk#play-services-ads-identifier-google-play
